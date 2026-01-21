@@ -116,6 +116,9 @@ def set_charges(quotation):
 		quotation.shipping_rule = shipping_rule
 		quotation.run_method("apply_shipping_rule")
 		quotation.run_method("calculate_taxes_and_totals")
+	else:
+		# FIX: Même sans shipping rule, s'assurer que les totaux sont calculés
+		quotation.run_method("calculate_taxes_and_totals")
 
 
 def set_cod_charges(quotation):
@@ -144,6 +147,10 @@ def set_cod_charges(quotation):
 @frappe.whitelist()
 def update_quotation_address(address: dict):
 	quotation = _get_cart_quotation()
+	
+	# FIX: Calculer les totaux AVANT de manipuler les payment terms
+	quotation.calculate_taxes_and_totals()
+	
 	update_quotation_payment_terms_due_date(quotation)
 	# Handle Store Pickup
 	if address.get("is_store_pickup", False):
@@ -344,6 +351,13 @@ def add_shipping_address(party_name, address):
 
 
 def update_quotation_payment_terms_due_date(quotation):
+	"""
+	FIX: Vérifier que grand_total est calculé avant de manipuler les payment terms
+	"""
+	# S'assurer que les totaux sont calculés
+	if not quotation.grand_total:
+		quotation.calculate_taxes_and_totals()
+	
 	today = getdate()
 	for term in quotation.get("payment_schedule", []):
 		if term.due_date and term.due_date < today:
