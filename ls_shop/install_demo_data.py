@@ -34,6 +34,7 @@ def install_demo_data():
 		# Step 1: Prerequisites
 		print("Step 1: Creating Prerequisites...")
 		create_item_attributes()
+		create_uoms()
 		create_brands()
 		create_price_lists()
 		create_shipping_rule()
@@ -150,6 +151,35 @@ def ensure_attribute_values(attribute_name, values, numeric=False):
 		# Attribute exists, just print message
 		# Don't try to update to avoid abbreviation conflicts
 		print(f"    • {attribute_name} attribute already exists")
+
+
+
+def create_uoms():
+	"""Create required Unit of Measures"""
+	print("  - Creating Units of Measure...")
+	
+	uoms = [
+		{"uom_name": "Nos", "name": "Nos", "must_be_whole_number": 1},
+		{"uom_name": "Unit", "name": "Unit", "must_be_whole_number": 1},
+		{"uom_name": "Box", "name": "Box", "must_be_whole_number": 1},
+		{"uom_name": "Kg", "name": "Kg", "must_be_whole_number": 0},
+		{"uom_name": "Meter", "name": "Meter", "must_be_whole_number": 0},
+	]
+	
+	for uom_data in uoms:
+		if not frappe.db.exists("UOM", uom_data["name"]):
+			uom = frappe.get_doc(
+				{
+					"doctype": "UOM",
+					"uom_name": uom_data["uom_name"],
+					"name": uom_data["name"],
+					"must_be_whole_number": uom_data["must_be_whole_number"],
+				}
+			)
+			uom.insert(ignore_permissions=True)
+			print(f"    ✓ UOM '{uom_data['name']}' created")
+		else:
+			print(f"    • UOM '{uom_data['name']}' already exists")
 
 
 def create_brands():
