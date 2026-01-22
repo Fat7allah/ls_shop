@@ -213,7 +213,38 @@ def create_shipping_rule():
 			"Account", {"account_name": "Freight and Forwarding Charges", "company": company}, "name"
 		)
 		if not account:
-			account = f"Freight and Forwarding Charges - {company_abbr}"
+			# Create the account if it doesn't exist
+			parent_account = frappe.db.get_value(
+				"Account",
+				{"account_name": "Indirect Expenses", "company": company, "is_group": 1},
+				"name"
+			)
+			if not parent_account:
+				# Fallback to Expenses
+				parent_account = frappe.db.get_value(
+					"Account",
+					{"account_name": "Expenses", "company": company, "is_group": 1},
+					"name"
+				)
+			
+			if parent_account:
+				account_doc = frappe.get_doc(
+					{
+						"doctype": "Account",
+						"account_name": "Freight and Forwarding Charges",
+						"parent_account": parent_account,
+						"company": company,
+						"is_group": 0,
+						"account_type": "Expense Account",
+						"root_type": "Expense",
+					}
+				)
+				account_doc.insert(ignore_permissions=True)
+				account = account_doc.name
+				print(f"    ✓ Account '{account}' created")
+			else:
+				print("    ⚠ Skipping Shipping Rule creation - could not find parent account")
+				return
 
 		# Get default cost center
 		cost_center = frappe.db.get_value("Cost Center", {"company": company, "is_group": 0}, "name")
